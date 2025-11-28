@@ -1,0 +1,26 @@
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
+
+#Ignore windsurf AI rules
+.windsurfrules
+
+# 模型文件（太大，不上传）
+*.pkl
+
+# Python缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 临时文件
+*.pptx
+*.xlsx
+*.docx
+*.pdf
+*.doc
+
+# 数据和模型目录（不上传）
+input/
+output/
+TabPFNModels/
