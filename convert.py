@@ -231,6 +231,16 @@ def convert_xlsx_to_csv(xlsx_file, csv_file, skip_rows=1, is_disease=True):
                     f"  处理: 基础血清促黄体生成激素（LH） 中 {count} 个 '<0.1' -> 0.05"
                 )
 
+        # FSH检测下限处理
+        if "基础血清卵泡刺激素（FSH）" in df.columns:
+            count = (df["基础血清卵泡刺激素（FSH）"] == "<0.1").sum()
+            if count > 0:
+                df.loc[
+                    df["基础血清卵泡刺激素（FSH）"] == "<0.1",
+                    "基础血清卵泡刺激素（FSH）",
+                ] = 0.05
+                print(f"  处理: 基础血清卵泡刺激素（FSH） 中 {count} 个 '<0.1' -> 0.05")
+
         # 乳核编码
         if "乳核" in df.columns:
             df["乳核"] = (
