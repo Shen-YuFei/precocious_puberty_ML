@@ -1,0 +1,45 @@
+# Git
+.git
+.github
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+*.egg
+.mypy_cache
+.pytest_cache
+
+# Virtual environments
+.venv
+venv
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Jupyter checkpoints
+.ipynb_checkpoints
+
+# Output files (mount as volume instead)
+output/*.csv
+output/*.pkl
+output/*.png
+output/*.pdf
+
+# Large files
+*.docx
+*.pdf
+*.pptx
+
+# OS files
+.DS_Store
+Thumbs.db

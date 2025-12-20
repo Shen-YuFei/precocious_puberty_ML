@@ -276,6 +276,11 @@ def convert_xlsx_to_csv(xlsx_file, csv_file, skip_rows=1, is_disease=True):
                 )
                 print(f"  编码: {col} (有->1, 无->0)")
 
+        # 对 ZERO_AS_NA_COLS 中的列，将 0 值转换为 NaN（在计算派生列之前）
+        for col in ZERO_AS_NA_COLS:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").replace(0, np.nan)
+
         # 计算派生列
         for col_name, config in COMPUTED_COLUMNS.items():
             depends = config["depends"]
