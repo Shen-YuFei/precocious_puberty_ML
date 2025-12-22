@@ -1,0 +1,10 @@
+{
+  "exclude": [
+    "vendor",
+    "output",
+    "input",
+    "TabPFNModels",
+    "__pycache__",
+    ".git",
+  ]
+}

@@ -24,3 +24,5 @@ __pycache__/
 input/
 output/
 TabPFNModels/
+proxy-ca.crt
+ppml-latest.tar

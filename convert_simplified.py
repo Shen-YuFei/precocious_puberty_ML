@@ -112,19 +112,24 @@ def main():
     disease_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(disease_simple)
     normal_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(normal_simple)
 
-    # 筛选完整样本（所有特征非NaN）
-    print("\n筛选完整样本（删除含NaN的行）...")
+    # 过滤缺失特征 >= 3 的样本
+    feature_cols_only = [c for c in disease_simple.columns if c != "患者编号"]
+
+    disease_missing = disease_simple[feature_cols_only].isna().sum(axis=1)
+    normal_missing = normal_simple[feature_cols_only].isna().sum(axis=1)
+
     disease_before = len(disease_simple)
     normal_before = len(normal_simple)
 
-    disease_simple = disease_simple.dropna()
-    normal_simple = normal_simple.dropna()
+    disease_simple = disease_simple[disease_missing < 3].reset_index(drop=True)
+    normal_simple = normal_simple[normal_missing < 3].reset_index(drop=True)
 
+    print(f"\n过滤缺失特征>=3的样本:")
     print(
-        f"  早熟组: {disease_before} -> {len(disease_simple)} (删除 {disease_before - len(disease_simple)} 行)"
+        f"  早熟组: {disease_before} -> {len(disease_simple)} (移除 {disease_before - len(disease_simple)})"
     )
     print(
-        f"  正常组: {normal_before} -> {len(normal_simple)} (删除 {normal_before - len(normal_simple)} 行)"
+        f"  正常组: {normal_before} -> {len(normal_simple)} (移除 {normal_before - len(normal_simple)})"
     )
 
     # 保存
