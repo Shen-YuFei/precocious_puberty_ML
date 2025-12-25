@@ -72,21 +72,24 @@ def main():
     disease_output = input_dir / "激发试验确诊性早熟组数据_simplified.csv"
     normal_output = input_dir / "性早熟数据激发试验正常组_simplified.csv"
 
-    # 定义精简特征列（根据医生结论，9个特征）
+    # 定义精简特征列（包含SHAP前5重要特征）
     simplified_feature_cols = [
         "患者编号",
+        "年龄",  # 用于年龄过滤
         # === LH/FSH 相关 ===
-        "基础血清促黄体生成激素（LH）",  # 1
-        "基础血清卵泡刺激素（FSH）",  # 2
+        "基础血清促黄体生成激素（LH）",  # SHAP #6
+        "基础血清卵泡刺激素（FSH）",
         # === 骨龄相关 ===
-        "骨龄(岁)",  # 3
-        "骨龄与实际年龄比值",  # 4
+        "骨龄(岁)",
+        "骨龄与实际年龄比值",
         # === 子宫 ===
-        "子宫长（cm）",  # 6
-        "子宫厚（cm）",  # 8
-        # === 卵巢体积 ===
-        "左卵巢体积（长X宽X厚X0.5233）",  # 13
-        "右卵巢体积（长X宽X厚X0.5233）",  # 17
+        "子宫长（cm）",  # SHAP #1
+        "子宫厚（cm）",  # SHAP #3
+        # === 卵巢 ===
+        "最大卵泡直径直径",  # SHAP #2 (新增)
+        "左卵巢体积（长X宽X厚X0.5233）",
+        "右卵巢体积（长X宽X厚X0.5233）",  # SHAP #4
+        "卵巢体积平均值",  # SHAP #5 (新增)
     ]
 
     print("=" * 60)
@@ -102,6 +105,21 @@ def main():
     normal_df = pd.read_csv(normal_file)
     print(f"  样本数: {len(normal_df)}, 原始特征数: {len(normal_df.columns)}")
 
+    # 过滤年龄：只保留4-8岁（4 <= 年龄 < 9）
+    if "年龄" in disease_df.columns:
+        disease_before = len(disease_df)
+        disease_df = disease_df[
+            (disease_df["年龄"] >= 4) & (disease_df["年龄"] < 9)
+        ].reset_index(drop=True)
+        print(f"  年龄过滤(4-8岁): {disease_before} -> {len(disease_df)}")
+
+    if "年龄" in normal_df.columns:
+        normal_before = len(normal_df)
+        normal_df = normal_df[
+            (normal_df["年龄"] >= 4) & (normal_df["年龄"] < 9)
+        ].reset_index(drop=True)
+        print(f"  年龄过滤(4-8岁): {normal_before} -> {len(normal_df)}")
+
     # 提取精简特征
     print("\n提取精简特征...")
     disease_simple = extract_simplified_features(disease_df, simplified_feature_cols)
@@ -112,25 +130,16 @@ def main():
     disease_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(disease_simple)
     normal_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(normal_simple)
 
-    # 过滤缺失特征 >= 3 的样本
-    feature_cols_only = [c for c in disease_simple.columns if c != "患者编号"]
+    # 删除年龄列（仅用于过滤，不作为特征）
+    if "年龄" in disease_simple.columns:
+        disease_simple = disease_simple.drop(columns=["年龄"])
+    if "年龄" in normal_simple.columns:
+        normal_simple = normal_simple.drop(columns=["年龄"])
 
-    disease_missing = disease_simple[feature_cols_only].isna().sum(axis=1)
-    normal_missing = normal_simple[feature_cols_only].isna().sum(axis=1)
-
-    disease_before = len(disease_simple)
-    normal_before = len(normal_simple)
-
-    disease_simple = disease_simple[disease_missing < 3].reset_index(drop=True)
-    normal_simple = normal_simple[normal_missing < 3].reset_index(drop=True)
-
-    print(f"\n过滤缺失特征>=3的样本:")
-    print(
-        f"  早熟组: {disease_before} -> {len(disease_simple)} (移除 {disease_before - len(disease_simple)})"
-    )
-    print(
-        f"  正常组: {normal_before} -> {len(normal_simple)} (移除 {normal_before - len(normal_simple)})"
-    )
+    # 不过滤缺失特征，保留所有样本
+    print(f"\n保留所有样本（不过滤缺失特征）")
+    print(f"  早熟组: {len(disease_simple)}")
+    print(f"  正常组: {len(normal_simple)}")
 
     # 保存
     print(f"\n保存早熟组精简数据: {disease_output}")

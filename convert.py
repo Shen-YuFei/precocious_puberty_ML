@@ -22,6 +22,7 @@ CRITICAL_COLUMNS = {
     "实验室检验": [
         "基础血清促黄体生成激素（LH）",
         "基础血清卵泡刺激素（FSH）",
+        "LH/FSH比值",
     ],
     "超声报告": [
         "子宫长（cm）",
@@ -56,7 +57,7 @@ CRITICAL_COLUMNS = {
     ],
 }
 
-# ===== 计算列定义（统一使用不带后缀的列名）=====
+# ===== 计算列定义=====
 COMPUTED_COLUMNS = {
     "BMI （体重Kg÷身高m）": {
         "formula": lambda df: df["体重（kg）"] / (df["身高（cm）"] / 100) ** 2,
@@ -102,6 +103,12 @@ COMPUTED_COLUMNS = {
     "乳腺体厚平均值（cm）": {
         "formula": lambda df: smart_avg(df["左乳腺体厚（cm）"], df["右乳腺体厚（cm）"]),
         "depends": ["左乳腺体厚（cm）", "右乳腺体厚（cm）"],
+    },
+    "LH/FSH比值": {
+        "formula": lambda df: (
+            df["基础血清促黄体生成激素（LH）"] / df["基础血清卵泡刺激素（FSH）"]
+        ).round(4),
+        "depends": ["基础血清促黄体生成激素（LH）", "基础血清卵泡刺激素（FSH）"],
     },
 }
 
@@ -299,6 +306,39 @@ def convert_xlsx_to_csv(xlsx_file, csv_file, skip_rows=1, is_disease=True):
         df = df.replace("", pd.NA)
         missing_count = df.isna().sum().sum()
         print(f"  空值: {missing_count} 个（保留为NaN）")
+
+        # 过滤年龄：只保留4-8岁（4 <= 年龄 < 9）
+        if "年龄" in df.columns:
+            before_filter = len(df)
+            df["年龄"] = pd.to_numeric(df["年龄"], errors="coerce")
+            df = df[(df["年龄"] >= 4) & (df["年龄"] < 9)].reset_index(drop=True)
+            print(f"  年龄过滤(4-8岁): {before_filter} -> {len(df)} 行")
+
+        # 过滤乳腺数据缺失样本：删除任一乳腺特征缺失的样本
+        breast_cols = [
+            "左乳腺体宽（cm）",
+            "左乳腺体厚（cm）",
+            "右乳腺体宽（cm）",
+            "右乳腺体厚（cm）",
+        ]
+        breast_cols_exist = [c for c in breast_cols if c in df.columns]
+        if breast_cols_exist:
+            before_filter = len(df)
+            df = df.dropna(subset=breast_cols_exist, how="any").reset_index(drop=True)
+            print(f"  乳腺缺失过滤: {before_filter} -> {len(df)} 行")
+
+        # 过滤阴毛缺失样本
+        if "有无阴毛" in df.columns:
+            before_filter = len(df)
+            df = df.dropna(subset=["有无阴毛"], how="any").reset_index(drop=True)
+            print(f"  阴毛缺失过滤: {before_filter} -> {len(df)} 行")
+
+        # 过滤Tanner分期缺失样本
+        if "Tanner分期" in df.columns:
+            before_filter = len(df)
+            df = df.dropna(subset=["Tanner分期"], how="any").reset_index(drop=True)
+            print(f"  Tanner缺失过滤: {before_filter} -> {len(df)} 行")
+
         print(f"  保留: {len(df)} 行 × {len(df.columns)} 列")
 
         df.to_csv(csv_file, index=False, encoding="utf-8-sig")
