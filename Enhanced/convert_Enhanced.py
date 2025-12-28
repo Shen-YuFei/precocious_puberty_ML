@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
@@ -362,13 +362,13 @@ def main():
 
     files = [
         (
-            "./input/性早熟数据激发试验正常组.xlsx",
-            "./input/性早熟数据激发试验正常组_new.csv",
+            "../input/性早熟数据激发试验正常组.xlsx",
+            "../input/性早熟数据激发试验正常组_new.csv",
             False,
         ),
         (
-            "./input/激发试验确诊性早熟组数据.xlsx",
-            "./input/激发试验确诊性早熟组数据_new.csv",
+            "../input/激发试验确诊性早熟组数据.xlsx",
+            "../input/激发试验确诊性早熟组数据_new.csv",
             True,
         ),
     ]

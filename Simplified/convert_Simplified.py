@@ -1,4 +1,4 @@
-"""
+﻿"""
 精简特征 CSV 生成脚本
 
 根据医生结论，从完整数据集中提取以下9个特征：
@@ -51,14 +51,24 @@ def extract_simplified_features(
     return result
 
 
-def calculate_lh_fsh_ratio(df: pd.DataFrame) -> pd.Series:
-    """计算 LH/FSH 比值"""
+def calculate_lh_fsh_ratio(df: pd.DataFrame, original_df: pd.DataFrame) -> pd.Series:
+    """计算 LH/FSH 比值（从原始数据获取FSH）"""
     lh_col = "基础血清促黄体生成激素（LH）"
     fsh_col = "基础血清卵泡刺激素（FSH）"
 
-    lh = df[lh_col]
-    fsh = df[fsh_col].replace(0, np.nan)  # 避免除零
+    if lh_col not in df.columns:
+        print(f"  警告: 缺少LH列，跳过LH/FSH比值计算")
+        return pd.Series([np.nan] * len(df))
 
+    lh = df[lh_col]
+
+    # 从原始数据获取FSH
+    fsh_found = find_column(original_df, fsh_col)
+    if fsh_found is None:
+        print(f"  警告: 原始数据中缺少FSH列，跳过LH/FSH比值计算")
+        return pd.Series([np.nan] * len(df))
+
+    fsh = original_df[fsh_found].iloc[df.index].replace(0, np.nan)
     return lh / fsh
 
 
@@ -78,17 +88,17 @@ def main():
         "年龄",  # 用于年龄过滤
         # === LH/FSH 相关 ===
         "基础血清促黄体生成激素（LH）",  # SHAP #6
-        "基础血清卵泡刺激素（FSH）",
+        # "基础血清卵泡刺激素（FSH）",
         # === 骨龄相关 ===
-        "骨龄(岁)",
-        "骨龄与实际年龄比值",
+        # "骨龄(岁)",
+        # "骨龄与实际年龄比值",
         # === 子宫 ===
         "子宫长（cm）",  # SHAP #1
         "子宫厚（cm）",  # SHAP #3
         # === 卵巢 ===
         "最大卵泡直径直径",  # SHAP #2 (新增)
-        "左卵巢体积（长X宽X厚X0.5233）",
-        "右卵巢体积（长X宽X厚X0.5233）",  # SHAP #4
+        # "左卵巢体积（长X宽X厚X0.5233）",
+        # "右卵巢体积（长X宽X厚X0.5233）",  # SHAP #4
         "卵巢体积平均值",  # SHAP #5 (新增)
     ]
 
@@ -125,10 +135,15 @@ def main():
     disease_simple = extract_simplified_features(disease_df, simplified_feature_cols)
     normal_simple = extract_simplified_features(normal_df, simplified_feature_cols)
 
-    # 计算 LH/FSH 比值
-    print("计算 LH/FSH 比值...")
-    disease_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(disease_simple)
-    normal_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(normal_simple)
+    # 计算 LH/FSH 比值（如果LH列存在）
+    if "基础血清促黄体生成激素（LH）" in disease_simple.columns:
+        print("计算 LH/FSH 比值...")
+        disease_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(
+            disease_simple, disease_df
+        )
+        normal_simple["LH/FSH比值"] = calculate_lh_fsh_ratio(normal_simple, normal_df)
+    else:
+        print("跳过 LH/FSH 比值计算（LH列不在特征列表中）")
 
     # 删除年龄列（仅用于过滤，不作为特征）
     if "年龄" in disease_simple.columns:
@@ -164,15 +179,16 @@ def main():
     print("\n" + "=" * 60)
     print("数据统计")
     print("=" * 60)
-    print(f"\n早熟组 LH/FSH 比值:")
-    print(f"  有效值: {disease_simple['LH/FSH比值'].notna().sum()}")
-    print(f"  均值: {disease_simple['LH/FSH比值'].mean():.4f}")
-    print(f"  中位数: {disease_simple['LH/FSH比值'].median():.4f}")
+    if "LH/FSH比值" in disease_simple.columns:
+        print(f"\n早熟组 LH/FSH 比值:")
+        print(f"  有效值: {disease_simple['LH/FSH比值'].notna().sum()}")
+        print(f"  均值: {disease_simple['LH/FSH比值'].mean():.4f}")
+        print(f"  中位数: {disease_simple['LH/FSH比值'].median():.4f}")
 
-    print(f"\n正常组 LH/FSH 比值:")
-    print(f"  有效值: {normal_simple['LH/FSH比值'].notna().sum()}")
-    print(f"  均值: {normal_simple['LH/FSH比值'].mean():.4f}")
-    print(f"  中位数: {normal_simple['LH/FSH比值'].median():.4f}")
+        print(f"\n正常组 LH/FSH 比值:")
+        print(f"  有效值: {normal_simple['LH/FSH比值'].notna().sum()}")
+        print(f"  均值: {normal_simple['LH/FSH比值'].mean():.4f}")
+        print(f"  中位数: {normal_simple['LH/FSH比值'].median():.4f}")
 
     print("\n完成！")
 
